@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Labcorp and Quest Locations Map</title>
+    <script src="https://maps.googleapis.com/maps/api/js?key=AIzaSyCPRC4j_LQ_I7Y82ZYdZqD8BG-viSsOesI"></script>
+    <script src="https://unpkg.com/@googlemaps/markerclusterer/dist/index.min.js"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <style>
+        /* Map styling */
+        #map {
+            height: 100vh;
+            width: 100%;
+        }
+
+        /* Control panel styling */
+        #control-panel {
+            position: absolute;
+            bottom: 20px;
+            left: 20px;
+            background-color: rgba(255, 255, 255, 0.9);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0px 4px 8px rgba(0, 0, 0, 0.2);
+            display: flex;
+            flex-direction: column;
+            width: 230px;
+            z-index: 1000;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            /* Clean, modern font */
+            font-size: 15px;
+            /* Slightly larger font */
+            opacity: 90%;
+        }
+
+        #control-panel h3 {
+            margin: 0 0 20px;
+            /* Increased margin for spacing */
+            font-size: 18px;
+            color: #333;
+            font-weight: 600;
+        }
+
+        /* Toggle switch styling */
+        .category {
+            display: flex;
+            align-items: left;
+            margin-bottom: 20px;
+            /* Increased vertical spacing */
+            font-size: 15px;
+            color: #333;
+        }
+
+        /* Rounded toggle switch */
+        .switch {
+            position: relative;
+            display: inline-block;
+            justify-content: space-between;
+            width: 40px;
+            height: 20px;
+            /* Reduced height */
+            margin-right: 10px;
+        }
+
+        .switch input {
+            display: none;
+        }
+
+        .slider {
+            position: absolute;
+            cursor: pointer;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: #ccc;
+            transition: .4s;
+            border-radius: 20px;
+            /* Rounded corners */
+        }
+
+        .slider:before {
+            position: absolute;
+            content: "";
+            height: 15px;
+            /* Adjusted toggle size */
+            width: 15px;
+            left: 2px;
+            bottom: 3px;
+            background-color: white;
+            transition: .4s;
+            border-radius: 50%;
+        }
+
+        input:checked+.slider {
+            background-color: #ccc;
+            /* Placeholder color */
+        }
+
+        input:checked+.slider:before {
+            transform: translateX(20px);
+            /* Adjusted to match new size */
+        }
+
+        .legend-color {
+            display: inline-block;
+            width: 20px;
+            height: 20px;
+            border-radius: 50%;
+            margin-right: 15px;
+            /* Increased spacing between the circle and text */
+        }
+
+        /*  */
+        .gm-style-iw-ch {
+            display: none;
+        }
+
+
+
+        /* Default close button (Google Maps default) */
+        .gm-style-iw button {
+            width: 24px !important;
+            /* Size of the button */
+            height: 24px !important;
+            padding: 0;
+            /* Remove padding */
+            margin: 0;
+            /* Remove margin */
+            position: absolute;
+            top: 7px;
+            /* Adjust button's position from the top */
+            right: 7px;
+            /* Adjust button's position from the right */
+            background-color: transparent;
+            /* Ensure no background */
+            z-index: 999;
+            display: flex;
+            /* Use flexbox to center the icon */
+            justify-content: left;
+            /* Horizontal centering */
+            align-items: left;
+            /* Vertical centering */
+            cursor: pointer;
+        }
+
+        /* Close button icon (SVG mask) */
+        .gm-style-iw button span {
+            display: inline-block;
+            /* Ensure span behaves like an inline element */
+            width: 24px;
+            /* Set width of cross icon */
+            height: 24px;
+            /* Set height of cross icon */
+            mask-image: url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%3E%3Cpath%20d=%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012z%22/%3E%3Cpath%20d=%22M0%200h24v24H0z%22%20fill=%22none%22/%3E%3C/svg%3E');
+            background-color: #1e5490;
+            /* Set the color of the cross icon */
+            mask-size: 100% 100%;
+            /* Ensure the SVG scales to the size of the span */
+            -webkit-mask-size: 100% 100%;
+            /* For Webkit browsers */
+        }
+
+
+        .gm-style-iw-ch {
+            display: none;
+        }
+
+        /* Default close button (Google Maps default) */
+        .gm-style-iw button {
+            width: 24px !important;
+            /* Slightly increase button size for more space */
+            height: 24px !important;
+            padding: 0;
+            /* Remove padding */
+            margin: 0;
+            /* Remove margin */
+            position: absolute;
+            top: 8px;
+            /* Adjust button's position from the top */
+            right: 8px;
+            /* Adjust button's position from the right */
+            background-color: transparent;
+            /* Ensure no background */
+            z-index: 999;
+            display: flex;
+            /* Use flexbox to center the icon */
+            justify-content: center;
+            /* Horizontal centering */
+            align-items: center;
+            /* Vertical centering */
+            cursor: pointer;
+        }
+
+        /* Close button icon (SVG mask) */
+        .gm-style-iw button span {
+            display: block;
+            /* Block to allow full control */
+            width: 12px;
+            /* Set width of cross icon */
+            height: 12px;
+            /* Set height of cross icon */
+            mask-image: url('data:image/svg+xml,%3Csvg%20xmlns=%22http://www.w3.org/2000/svg%22%20viewBox=%220%200%2024%2024%22%3E%3Cpath%20d=%22M19%206.41L17.59%205%2012%2010.59%206.41%205%205%206.41%2010.59%2012%205%2017.59%206.41%2019%2012%2013.41%2017.59%2019%2019%2017.59%2013.41%2012z%22/%3E%3Cpath%20d=%22M0%200h24v24H0z%22%20fill=%22none%22/%3E%3C/svg%3E');
+            background-color: #1e5490;
+            /* Set the color of the cross icon */
+            mask-size: 100% 100%;
+            /* Ensure the SVG scales to the size of the span */
+            -webkit-mask-size: 100% 100%;
+            /* For Webkit browsers */
+            margin: auto;
+            /* Ensure it stays centered inside the button */
+            position: relative;
+        }
+
+
+
+        /* Styling for the info window */
+        .info-window {
+            top: 0;
+            font-family: 'Helvetica', 'Arial', sans-serif;
+            max-width: 250px;
+            line-height: 1.5;
+            padding: 10px;
+            border-radius: 8px;
+            /* Rounded corners for popup */
+            position: relative;
+            height: fit-content;
+            z-index: 0;
+        }
+
+        /* Centered logo with extra margin */
+        .info-window img {
+            display: block;
+            margin: 0 auto 12px;
+            /* Extra margin for spacing */
+            width: 80px;
+            /* Logo size */
+            height: auto;
+        }
+
+        /* Heading styling */
+        .info-window h2 {
+            color: #1e5490;
+            /* Dark blue */
+            font-size: 16px;
+            margin-bottom: 10px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        /* Icon and text alignment */
+        .info-window .icon {
+            width: 16px;
+            /* Standard icon size */
+            height: 16px;
+            margin-right: 10px;
+            /* More spacing between icon and text */
+            color: #1e5490;
+            /* Icon color */
+            display: inline-block;
+        }
+
+        /* Phone number styling */
+        .info-window .phone a {
+            color: #333;
+            font-size: 14px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        .info-window .phone a:hover {
+            color: #1e5490;
+            border-color: #1e5490;
+            /* Border changes on hover */
+        }
+
+        /* Styling for address and other information */
+        .info-window .address-wrapper {
+            display: flex;
+            margin: 5px 0;
+            align-items: center;
+            /* Vertical alignment */
+        }
+
+        .info-window .address-wrapper i {
+            flex-shrink: 0;
+            margin-right: 10px;
+            width: 18px;
+            /* Larger location icon */
+            height: 18px;
+            color: #1e5490;
+        }
+
+        .info-window .address-wrapper span {
+            display: inline-block;
+            max-width: 230px;
+            word-wrap: break-word;
+        }
+
+        /* Hover effect for address */
+        .info-window .address-wrapper a {
+            color: #333;
+            text-decoration: none;
+        }
+
+        .info-window .address-wrapper a:hover {
+            color: #1e5490;
+            text-decoration: underline;
+        }
+
+
+        /* Link styling */
+        .info-window a {
+            color: #1e5490;
+            font-size: 14px;
+            text-decoration: none;
+        }
+
+        .info-window a:hover {
+            text-decoration: underline;
+        }
+
+        .info-window .category-type p {
+            color: #333;
+            font-size: 14px;
+            text-decoration: none;
+            border-radius: 4px;
+        }
+
+        /* Special information icon */
+        .info-window .info-circle {
+            display: flex;
+            align-items: center;
+            margin: 8px 0;
+        }
+
+        .info-window .info-circle i {
+            margin-right: 10px;
+            color: #1e5490;
+        }
+
+        .info-window .info-circle span {
+            color: #333;
+        }
+
+
+
+
+        /* Responsive styling for mobile */
+        @media (max-width: 768px) {
+            #control-panel {
+                position: absolute;
+                margin: 10px auto;
+                width: 30%;
+                top: auto;
+                left: auto;
+                transform: none;
+            }
+
+            #map {
+                height: 100vh;
+            }
+        }
+    </style>
+
+
+</head>
+
+<body>
+    <div id="map"></div>
+
+    <!-- Control Panel -->
+    <div id="control-panel">
+        <div class="category">
+            <label class="switch">
+                <input type="checkbox" id="toggleMorgan" checked>
+                <span class="slider"></span>
+            </label>
+            <span>Morgan Fertility</span>
+
+        </div>
+        <div class="category">
+            <label class="switch">
+                <input type="checkbox" id="toggleUltrasoundBloodwork" checked>
+                <span class="slider"></span>
+            </label>
+            <span>Ultrasound and Bloodwork</span>
+
+        </div>
+        <div class="category">
+            <label class="switch">
+                <input type="checkbox" id="toggleBloodworkOnly" checked>
+                <span class="slider"></span>
+            </label>
+            <span>Bloodwork Only</span>
+
+        </div>
+        <div class="category">
+            <label class="switch">
+                <input type="checkbox" id="toggleUltrasoundOnly" checked>
+                <span class="slider"></span>
+            </label>
+            <span>Ultrasound Only</span>
+
+        </div>
+    </div>
+
+    <script>
+        let map;
+        let markersByCategory = {
+            "Morgan Fertility": [],
+            "Ultrasound and Bloodwork": [],
+            "Bloodwork Only": [],
+            "Ultrasound Only": []
+        };
+        let markerClusters = {};
+
+        // Custom icons for categories
+        const categoryIcons = {
+    "Morgan Fertility": {
+        url: "https://morganfertility.com/wp-content/uploads/2024/11/morgan_fertility.png",
+        scaledSize: new google.maps.Size(20, 20)
+    },
+    "Ultrasound and Bloodwork": {
+        url: "https://morganfertility.com/wp-content/uploads/2024/11/u_b.png",
+        scaledSize: new google.maps.Size(20, 20)
+    },
+    "Bloodwork Only": {
+        url: "https://morganfertility.com/wp-content/uploads/2024/11/bloodwork.png",
+        scaledSize: new google.maps.Size(20, 20)
+    },
+    "Ultrasound Only": {
+        url: "https://morganfertility.com/wp-content/uploads/2024/11/ultrasound.png",
+        scaledSize: new google.maps.Size(20, 20)
+    }
+};
+
+
+        // Category colors
+        const categoryColors = {
+            "Morgan Fertility": "#1e5591",
+            "Ultrasound and Bloodwork": "#3a79ba",
+            "Bloodwork Only": "#f28e1c",
+            "Ultrasound Only": "#6fbf73"
+        };
+
+        const mapStyle = [
+            { "elementType": "geometry", "stylers": [{ "color": "#f5f5f5" }] },
+            { "elementType": "labels.icon", "stylers": [{ "visibility": "off" }] },
+            { "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+            { "elementType": "labels.text.stroke", "stylers": [{ "color": "#f5f5f5" }] },
+            { "featureType": "administrative.land_parcel", "elementType": "labels.text.fill", "stylers": [{ "color": "#bdbdbd" }] },
+            { "featureType": "poi", "elementType": "geometry", "stylers": [{ "color": "#eeeeee" }] },
+            { "featureType": "poi", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+            { "featureType": "poi.park", "elementType": "geometry", "stylers": [{ "color": "#e5e5e5" }] },
+            { "featureType": "poi.park", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
+            { "featureType": "road", "elementType": "geometry", "stylers": [{ "color": "#ffffff" }] },
+            { "featureType": "road.arterial", "elementType": "labels.text.fill", "stylers": [{ "color": "#757575" }] },
+            { "featureType": "road.highway", "elementType": "geometry", "stylers": [{ "color": "#dadada" }] },
+            { "featureType": "road.highway", "elementType": "labels.text.fill", "stylers": [{ "color": "#616161" }] },
+            { "featureType": "road.local", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] },
+            { "featureType": "transit.line", "elementType": "geometry", "stylers": [{ "color": "#e5e5e5" }] },
+            { "featureType": "transit.station", "elementType": "geometry", "stylers": [{ "color": "#eeeeee" }] },
+            { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#c9c9c9" }] },
+            { "featureType": "water", "elementType": "labels.text.fill", "stylers": [{ "color": "#9e9e9e" }] }
+        ];
+
+        function initMap() {
+            map = new google.maps.Map(document.getElementById("map"), {
+                zoom: 5,
+                center: { lat: 39.8283, lng: -98.5795 },
+                styles: mapStyle
+            });
+
+            fetch('https://raw.githubusercontent.com/Samz848/morgan-fertility-map/main/map.geojson')
+    .then(response => response.json())
+    .then(data => {
+        data.features.forEach(feature => createMarker(feature));
+        applyMarkerClusters();
+    })
+    .catch(error => console.error('Error fetching GeoJSON data:', error));
+
+
+            document.getElementById("toggleMorgan").addEventListener("change", updateMarkersVisibility);
+            document.getElementById("toggleUltrasoundBloodwork").addEventListener("change", updateMarkersVisibility);
+            document.getElementById("toggleBloodworkOnly").addEventListener("change", updateMarkersVisibility);
+            document.getElementById("toggleUltrasoundOnly").addEventListener("change", updateMarkersVisibility);
+
+            // Set colors for the toggles
+            setToggleColors();
+        }
+
+        function createMarker(feature) {
+            const category = feature.properties.Catagory;
+            const position = {
+                lat: feature.geometry.coordinates[1],
+                lng: feature.geometry.coordinates[0]
+            };
+
+            const marker = new google.maps.Marker({
+                position: position,
+                icon: categoryIcons[category],
+                map: map,
+                category: category
+            });
+
+            const infoWindow = new google.maps.InfoWindow({
+                content: getInfoWindowContent(feature.properties)
+            });
+
+            marker.addListener('click', () => {
+                infoWindow.open(map, marker);
+            });
+
+            markersByCategory[category].push(marker);
+        }
+
+        function applyMarkerClusters() {
+            for (const category in markersByCategory) {
+                markerClusters[category] = new markerClusterer.MarkerClusterer({
+                    map: map,
+                    markers: markersByCategory[category],
+                    gridSize: 120,
+                    minimumClusterSize: 10,
+                    maxZoom: 12,
+                    renderer: {
+                        render: ({ count, position }) => {
+                            const clusterColor = categoryColors[category];
+                            const clusterSize = Math.min(25, 10 + count / 10);
+
+                            return new google.maps.Marker({
+                                position: position,
+                                icon: {
+                                    path: google.maps.SymbolPath.CIRCLE,
+                                    scale: clusterSize,
+                                    fillColor: clusterColor,
+                                    fillOpacity: 0.8,
+                                    strokeWeight: 1,
+                                    strokeColor: "white"
+                                },
+                                label: {
+                                    text: String(count),
+                                    color: "white",
+                                    fontWeight: "bold",
+                                    fontSize: "12px"
+                                },
+                                zIndex: Number(google.maps.Marker.MAX_ZINDEX) + count
+                            });
+                        }
+                    }
+                });
+            }
+        }
+        let currentInfoWindow;
+
+        function getInfoWindowContent(properties) {
+            return `
+        <div class="info-window">
+           
+            <!-- Centered logo -->
+            <img src="https://morganfertility.com/wp-content/uploads/2024/11/logo.png" alt="Logo">
+
+            
+            <h2>${properties.name}</h2>
+            
+            <p class="phone">
+                <i class="fas fa-phone-alt icon"></i> 
+                <a href="tel:${properties.phone_number}" target="_blank">
+                    ${properties.phone_number || 'No phone number available'}
+                </a>
+            </p>
+            
+            <div class="address-wrapper">
+                <i class="fas fa-map-marker-alt icon"></i>
+                <span>
+                    <a href="https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(properties.address)}" target="_blank">
+                        ${properties.address}
+                    </a>
+                </span>
+            </div>
+            
+            <div class="category-type">
+            <p>
+                <i class="fas fa-info-circle icon"></i> ${properties.Catagory}
+            </p>
+            </div>
+            
+            <a href="${properties.link}" target="_blank">
+                <i class="fas fa-external-link-alt icon"></i> Learn More
+            </a>
+        </div>
+    `;
+        }
+
+        function showInfoWindow(marker, properties) {
+            if (currentInfoWindow) {
+                currentInfoWindow.close();
+            }
+
+            // Create the info window and set its content
+            const infoWindow = new google.maps.InfoWindow({
+                content: getInfoWindowContent(properties),
+            });
+
+            // Open the info window
+            infoWindow.open(map, marker);
+
+            // Use DOM-ready event to attach a listener to the custom close button
+            google.maps.event.addListener(infoWindow, 'domready', function () {
+                // Now attach the event listener to the close button
+                document.getElementById("custom-close-btn").addEventListener("click", function () {
+                    infoWindow.close();
+                    console.log("Info window closed");
+                });
+            });
+
+            // Set the current info window for future use
+            currentInfoWindow = infoWindow;
+        }
+        if (currentInfoWindow) {
+            // Close the InfoWindow if clicked outside the popup or on another part of the map
+            map.addListener("click", function () {
+                if (currentInfoWindow) {
+                    currentInfoWindow.close();
+                    currentInfoWindow = null;
+                }
+            });
+        }
+
+
+        function updateMarkersVisibility() {
+            const showMorgan = document.getElementById("toggleMorgan").checked;
+            const showUltrasoundBloodwork = document.getElementById("toggleUltrasoundBloodwork").checked;
+            const showBloodworkOnly = document.getElementById("toggleBloodworkOnly").checked;
+            const showUltrasoundOnly = document.getElementById("toggleUltrasoundOnly").checked;
+
+            for (const category in markersByCategory) {
+                const markers = markersByCategory[category];
+                const visible = (
+                    (category === "Morgan Fertility" && showMorgan) ||
+                    (category === "Ultrasound and Bloodwork" && showUltrasoundBloodwork) ||
+                    (category === "Bloodwork Only" && showBloodworkOnly) ||
+                    (category === "Ultrasound Only" && showUltrasoundOnly)
+                );
+
+                markers.forEach(marker => marker.setVisible(visible));
+
+                markerClusters[category].clearMarkers();
+                markerClusters[category].addMarkers(markers.filter(marker => marker.getVisible()));
+            }
+        }
+
+        // Function to dynamically set the colors of the toggle switches
+        function setToggleColors() {
+            document.getElementById("toggleMorgan").nextElementSibling.style.backgroundColor = categoryColors["Morgan Fertility"];
+            document.getElementById("toggleUltrasoundBloodwork").nextElementSibling.style.backgroundColor = categoryColors["Ultrasound and Bloodwork"];
+            document.getElementById("toggleBloodworkOnly").nextElementSibling.style.backgroundColor = categoryColors["Bloodwork Only"];
+            document.getElementById("toggleUltrasoundOnly").nextElementSibling.style.backgroundColor = categoryColors["Ultrasound Only"];
+        }
+
+        window.onload = initMap;
+    </script>
+</body>
+
+</html>
